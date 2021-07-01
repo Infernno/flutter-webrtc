@@ -14,18 +14,19 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.media.AudioDeviceInfo;
 import android.media.AudioManager;
 import android.os.Build;
-import android.preference.PreferenceManager;
 import android.util.Log;
+
+import org.webrtc.ThreadUtils;
+
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
-import com.cloudwebrtc.webrtc.utils.RTCUtils;
-import org.webrtc.ThreadUtils;
 
 /**
  * RTCAudioManager manages all audio related parts of the plugin.
@@ -49,15 +50,10 @@ public class RTCAudioManager {
     RUNNING,
   }
 
-  /** Selected audio device change event. */
-  public interface AudioManagerEvents {
-    // Callback fired once audio device is changed or list of available audio devices changed.
-    void onAudioDeviceChanged(
-        AudioDevice selectedAudioDevice, Set<AudioDevice> availableAudioDevices);
-  }
-
   private final Context appContext;
   private AudioManager audioManager;
+
+  private List<AudioManagerEvents> subscribers = new ArrayList<>();
 
   private AudioManagerEvents audioManagerEvents;
   private AudioManagerState amState;
@@ -105,6 +101,13 @@ public class RTCAudioManager {
   // Callback method for changes in audio focus.
 
   private AudioManager.OnAudioFocusChangeListener audioFocusChangeListener;
+
+  // Static instance
+  private static RTCAudioManager rtcAudioManager;
+
+  public static RTCAudioManager getRtcAudioManager() {
+    return rtcAudioManager;
+  }
 
   /**
    * This method is called when the proximity sensor reports a state change,
@@ -155,7 +158,10 @@ public class RTCAudioManager {
 
   /** Construction. */
   public static RTCAudioManager create(Context context) {
-    return new RTCAudioManager(context);
+    RTCAudioManager manager = new RTCAudioManager(context);
+    rtcAudioManager = manager;
+
+    return manager;
   }
 
   private RTCAudioManager(Context context) {
@@ -590,11 +596,28 @@ public class RTCAudioManager {
       Log.d(TAG, "New device status: "
               + "available=" + audioDevices + ", "
               + "selected=" + newAudioDevice);
+
+      notifyListeners(selectedAudioDevice, audioDevices);
+
       if (audioManagerEvents != null) {
         // Notify a listening client that audio device has been changed.
         audioManagerEvents.onAudioDeviceChanged(selectedAudioDevice, audioDevices);
       }
     }
     Log.d(TAG, "--- updateAudioDeviceState done");
+  }
+
+  public void addListener(AudioManagerEvents managerEvents) {
+    subscribers.add(managerEvents);
+  }
+
+  public void removeListener(AudioManagerEvents managerEvents) {
+    subscribers.remove(managerEvents);
+  }
+
+  private void notifyListeners(AudioDevice selected, Set<AudioDevice> audioDevices) {
+    for (AudioManagerEvents manager : subscribers) {
+      manager.onAudioDeviceChanged(selected, audioDevices);
+    }
   }
 }
