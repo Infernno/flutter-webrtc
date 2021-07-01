@@ -103,10 +103,20 @@ public class RTCAudioManager {
   private AudioManager.OnAudioFocusChangeListener audioFocusChangeListener;
 
   // Static instance
+  private static RTCAudioManagerListener managerListener;
   private static RTCAudioManager rtcAudioManager;
+
+  public static void setListener(RTCAudioManagerListener listener) {
+    managerListener = listener;
+  }
 
   public static RTCAudioManager getRtcAudioManager() {
     return rtcAudioManager;
+  }
+
+  private static void notifyAvailable(RTCAudioManager instance) {
+    rtcAudioManager = instance;
+    managerListener.onAvailable(instance);
   }
 
   /**
@@ -158,10 +168,7 @@ public class RTCAudioManager {
 
   /** Construction. */
   public static RTCAudioManager create(Context context) {
-    RTCAudioManager manager = new RTCAudioManager(context);
-    rtcAudioManager = manager;
-
-    return manager;
+    return new RTCAudioManager(context);
   }
 
   private RTCAudioManager(Context context) {
@@ -193,6 +200,8 @@ public class RTCAudioManager {
 
     Log.d(TAG, "defaultAudioDevice: " + defaultAudioDevice);
     RTCUtils.logDeviceInfo(TAG);
+
+    notifyAvailable(this);
   }
 
   @SuppressWarnings("deprecation") // TODO(henrika): audioManager.requestAudioFocus() is deprecated.
