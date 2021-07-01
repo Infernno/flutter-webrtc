@@ -338,7 +338,7 @@ public class RTCAudioManager {
   }
 
   /** Changes selection of the currently active audio device. */
-  private void setAudioDeviceInternal(AudioDevice device) {
+  public void setAudioDeviceInternal(AudioDevice device) {
     Log.d(TAG, "setAudioDeviceInternal(device=" + device + ")");
     RTCUtils.assertIsTrue(audioDevices.contains(device));
 
