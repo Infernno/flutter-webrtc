@@ -596,22 +596,31 @@ public class RTCAudioManager {
       // depending on the user's selection.
       newAudioDevice = defaultAudioDevice;
     }
+
     // Switch to new device but only if there has been any changes.
     if (newAudioDevice != selectedAudioDevice || audioDeviceSetUpdated) {
-      // Do the required device switch.
-      setAudioDeviceInternal(newAudioDevice);
-      Log.d(TAG, "New device status: "
-              + "available=" + audioDevices + ", "
-              + "selected=" + newAudioDevice);
-
-      notifyListeners(selectedAudioDevice, audioDevices);
-
-      if (audioManagerEvents != null) {
-        // Notify a listening client that audio device has been changed.
-        audioManagerEvents.onAudioDeviceChanged(selectedAudioDevice, audioDevices);
-      }
+      setAndNotify(newAudioDevice, audioDevices);
+    } else if (userSelectedAudioDevice != AudioDevice.NONE && userSelectedAudioDevice != selectedAudioDevice) {
+      setAndNotify(userSelectedAudioDevice, audioDevices);
     }
+
     Log.d(TAG, "--- updateAudioDeviceState done");
+  }
+
+  private void setAndNotify(AudioDevice selected, Set<AudioDevice> audioDevices) {
+    // Do the required device switch.
+    setAudioDeviceInternal(selected);
+
+    Log.d(TAG, "New device status: "
+            + "available=" + audioDevices + ", "
+            + "selected=" + selected);
+
+    notifyListeners(selected, audioDevices);
+
+    if (audioManagerEvents != null) {
+      // Notify a listening client that audio device has been changed.
+      audioManagerEvents.onAudioDeviceChanged(selected, audioDevices);
+    }
   }
 
   public void addListener(AudioManagerEvents managerEvents) {
